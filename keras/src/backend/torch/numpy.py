@@ -1410,6 +1410,12 @@ def ravel(x):
     return torch.ravel(x)
 
 
+def unique(x, return_inverse=False, return_counts=False, axis=None):
+    return torch.unique(
+        x, return_inverse=return_inverse, return_counts=return_counts, dim=axis
+    )
+
+
 def unravel_index(indices, shape):
     indices = convert_to_tensor(indices)
     dtype = dtypes.result_type(indices.dtype)

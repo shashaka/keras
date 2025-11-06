@@ -1067,6 +1067,12 @@ def ravel(x):
     return jnp.ravel(x)
 
 
+def unique(x, return_inverse=False, return_counts=False, axis=None):
+    return jnp.unique(
+        x, return_inverse=return_inverse, return_counts=return_counts, axis=axis
+    )
+
+
 def unravel_index(indices, shape):
     indices = convert_to_tensor(indices)
     return jnp.unravel_index(indices, shape)

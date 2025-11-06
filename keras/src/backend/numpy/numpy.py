@@ -1022,6 +1022,12 @@ def ravel(x):
     return np.ravel(x)
 
 
+def unique(x, return_inverse=False, return_counts=False, axis=None):
+    return np.unique(
+        x, return_inverse=return_inverse, return_counts=return_counts, axis=axis
+    )
+
+
 def unravel_index(indices, shape):
     dtype = dtypes.result_type(indices.dtype)
     return tuple(
