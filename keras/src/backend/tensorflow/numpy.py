@@ -2324,6 +2324,71 @@ def ravel(x):
     return tf.reshape(x, [-1])
 
 
+def unique(x, return_inverse=False, return_counts=False, axis=None):
+    def _unique1d_numeric(ar, return_inverse=False, return_counts=False):
+        ar = tf.reshape(ar, [-1])
+        perm = tf.argsort(ar, stable=True)
+        aux = tf.gather(ar, perm)
+
+        mask = tf.concat([[True], aux[1:] != aux[:-1]], axis=0)
+        uniques = tf.boolean_mask(aux, mask)
+
+        ret = (uniques,)
+        if return_inverse:
+            imask = tf.cumsum(tf.cast(mask, tf.int32)) - 1
+            inv_idx = tf.tensor_scatter_nd_update(
+                tf.zeros_like(imask), tf.expand_dims(perm, 1), imask
+            )
+            ret += (inv_idx,)
+        if return_counts:
+            idx = tf.concat([tf.where(mask)[:, 0], [tf.shape(mask)[0]]], axis=0)
+            counts = idx[1:] - idx[:-1]
+            ret += (counts,)
+        return ret
+
+    x = convert_to_tensor(x)
+
+    if axis is None:
+        return _unique1d_numeric(x, return_inverse, return_counts)
+
+    axis = axis if axis >= 0 else axis + x.shape.rank
+    x_moved = tf.experimental.numpy.moveaxis(x, axis, 0)
+    shape_front = tf.shape(x_moved)
+    x_flat = tf.reshape(x_moved, [shape_front[0], -1])
+
+    def _numpy_unique_rows(arr):
+        import numpy as np
+
+        uniques, idx, inv, counts = np.unique(
+            arr,
+            axis=0,
+            return_index=True,
+            return_inverse=True,
+            return_counts=True,
+        )
+        return uniques, idx, inv, counts
+
+    uniques_np, idx_np, inv_np, counts_np = tf.py_function(
+        _numpy_unique_rows,
+        [x_flat],
+        [x_flat.dtype, tf.int64, tf.int64, tf.int64],
+    )
+
+    uniques = tf.reshape(uniques_np, [-1, *x_moved.shape[1:]])
+    uniques = tf.experimental.numpy.moveaxis(uniques, 0, axis)
+
+    ret = (uniques,)
+
+    if return_inverse:
+        inv_idx = tf.reshape(inv_np, shape_front)
+        ret += (inv_idx,)
+
+    if return_counts:
+        ret += (counts_np,)
+
+    return ret if len(ret) > 1 else ret[0]
+
+
 def unravel_index(indices, shape):
     indices = tf.convert_to_tensor(indices)
     input_dtype = indices.dtype
