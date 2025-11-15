@@ -3114,6 +3114,48 @@ def empty(shape, dtype=None):
     return backend.numpy.empty(shape, dtype=dtype)
 
 
+class EmptyLike(Operation):
+    def __init__(self, dtype=None, *, name=None):
+        super().__init__(name=name)
+        self.dtype = None if dtype is None else backend.standardize_dtype(dtype)
+
+    def call(self, x):
+        return backend.numpy.empty_like(x, dtype=self.dtype)
+
+    def compute_output_spec(self, x):
+        dtype = (
+            backend.standardize_dtype(x.dtype)
+            if self.dtype is None
+            else self.dtype
+        )
+        return KerasTensor(x.shape, dtype=dtype)
+
+
+@keras_export(["keras.ops.empty_like", "keras.ops.numpy.empty_like"])
+def empty_like(x, dtype=None):
+    """Return a new uninitialized tensor with the same shape and dtype as `x`.
+
+    Args:
+        x: Input tensor to mimic shape and dtype.
+        dtype: Optional data type. If None, uses `x.dtype`.
+
+    Returns:
+        A tensor with the same shape and dtype as `x`, with arbitrary contents.
+
+    Example:
+    >>> from keras import ops
+    >>> x = ops.ones((2, 3), dtype="float32")
+    >>> y = ops.empty_like(x)
+    >>> y.shape
+    (2, 3)
+    >>> y.dtype
+    dtype('float32')
+    """
+    if any_symbolic_tensors((x,)):
+        return EmptyLike(dtype=dtype).symbolic_call(x)
+    return backend.numpy.empty_like(x, dtype=dtype)
+
+
 class Equal(Operation):
     def call(self, x1, x2):
         return backend.numpy.equal(x1, x2)
@@ -3927,10 +3969,10 @@ def isreal(x):
         Output boolean tensor.
 
     Example:
-        >>> from keras import ops
-        >>> x = ops.array([1+1j, 1+0j, 4.5, 3, 2, 2j], dtype="complex64")
-        >>> ops.isreal(x)
-        array([False,  True,  True,  True,  True, False])
+    >>> from keras import ops
+    >>> x = ops.array([1+1j, 1+0j, 4.5, 3, 2, 2j], dtype="complex64")
+    >>> ops.isreal(x)
+    array([False,  True,  True,  True,  True, False])
     """
     if any_symbolic_tensors((x,)):
         return Isreal().symbolic_call(x)
@@ -5509,10 +5551,10 @@ def unravel_index(indices, shape):
         Tuple of arrays for each dimension with unraveled indices.
 
     Example:
-        >>> indices = 5
-        >>> shape = (3, 3)
-        >>> unravel_index(indices, shape)
-        (1, 2)  # 5 is at row 1, column 2 in a 3x3 array
+    >>> indices = 5
+    >>> shape = (3, 3)
+    >>> unravel_index(indices, shape)
+    (1, 2)  # 5 is at row 1, column 2 in a 3x3 array
     """
     if any_symbolic_tensors((indices,)):
         return UnravelIndex(shape).symbolic_call(indices)

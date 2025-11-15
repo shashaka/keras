@@ -678,6 +678,10 @@ def empty(shape, dtype=None):
     return jnp.empty(shape, dtype=dtype)
 
 
+def empty_like(x, dtype=None):
+    return jnp.empty_like(x, dtype=dtype)
+
+
 def equal(x1, x2):
     x1 = convert_to_tensor(x1)
     x2 = convert_to_tensor(x2)
@@ -1202,6 +1206,8 @@ def take(x, indices, axis=None):
 
 
 def take_along_axis(x, indices, axis=None):
+    x = convert_to_tensor(x)
+    indices = convert_to_tensor(indices, sparse=False)
     return jnp.take_along_axis(x, indices, axis=axis)
 
 
