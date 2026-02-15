@@ -970,6 +970,13 @@ def moveaxis(x, source, destination):
     return np.moveaxis(x, source=source, destination=destination)
 
 
+def nanargmin(x, axis=None, keepdims=False):
+    nan_mask = np.isnan(x)
+    x_clean = np.where(nan_mask, np.inf, x)
+    res = np.argmin(x_clean, axis=axis, keepdims=keepdims)
+    return np.where(np.all(nan_mask, axis=axis, keepdims=keepdims), -1, res)
+
+
 def nanmax(x, axis=None, keepdims=False):
     return np.nanmax(x, axis=axis, keepdims=keepdims)
 

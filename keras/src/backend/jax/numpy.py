@@ -1026,6 +1026,11 @@ def moveaxis(x, source, destination):
     return jnp.moveaxis(x, source=source, destination=destination)
 
 
+def nanargmin(x, axis=None, keepdims=False):
+    x = convert_to_tensor(x)
+    return jnp.nanargmin(x, axis=axis, keepdims=keepdims)
+
+
 def nanmax(x, axis=None, keepdims=False):
     x = convert_to_tensor(x)
     return jnp.nanmax(x, axis=axis, keepdims=keepdims)

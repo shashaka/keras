@@ -2144,6 +2144,22 @@ def moveaxis(x, source, destination):
     return tf.transpose(x, perm)
 
 
+def nanargmin(x, axis=None, keepdims=False):
+    x = convert_to_tensor(x)
+
+    x_clean = tf.where(
+        cast(tf.math.is_nan(x), float), tf.constant(float("inf")), x
+    )
+
+    res = tf.argmin(x_clean, axis=axis)
+
+    return tf.where(
+        tf.reduce_all(tf.math.is_nan(x), axis=axis, keepdims=keepdims),
+        tf.constant(float(-1), dtype=x.dtype),
+        res,
+    )
+
+
 def nanmax(x, axis=None, keepdims=False):
     x = convert_to_tensor(x)
 
