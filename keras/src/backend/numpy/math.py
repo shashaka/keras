@@ -51,6 +51,12 @@ def segment_max(data, segment_ids, num_segments=None, sorted=False):
     )
 
 
+def segment_min(data, segment_ids, num_segments=None, sorted=False):
+    return _segment_reduction_fn(
+        data, segment_ids, np.minimum, num_segments, sorted
+    )
+
+
 def top_k(x, k, sorted=True):
     if sorted:
         # Take the k largest values.

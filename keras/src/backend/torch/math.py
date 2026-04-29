@@ -61,6 +61,12 @@ def segment_max(data, segment_ids, num_segments=None, sorted=False):
     return _segment_reduction_fn(data, segment_ids, "amax", num_segments)
 
 
+def segment_min(data, segment_ids, num_segments=None, sorted=False):
+    data = convert_to_tensor(data)
+    segment_ids = convert_to_tensor(segment_ids)
+    return _segment_reduction_fn(data, segment_ids, "amin", num_segments)
+
+
 def top_k(x, k, sorted=True):
     x = convert_to_tensor(x)
     return torch.topk(x, k, sorted=sorted)
