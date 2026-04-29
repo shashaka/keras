@@ -24,6 +24,8 @@ def _segment_reduction_fn(
 
     if reduction_method == np.maximum:
         result = np.ones(data_shape, dtype=valid_data.dtype) * -np.inf
+    elif reduction_method == np.minimum:
+        result = np.ones(data_shape, dtype=valid_data.dtype) * np.inf
     else:
         result = np.zeros(data_shape, dtype=valid_data.dtype)
 

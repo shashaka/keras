@@ -36,6 +36,8 @@ def _segment_reduction_fn(data, segment_ids, reduction_method, num_segments):
 
     if reduction_method == "amax":
         result = torch.ones(*shape, device=get_device()) * -float("Inf")
+    elif reduction_method == "amin":
+        result = torch.ones(*shape, device=get_device()) * float("Inf")
     else:
         result = torch.zeros(*shape, device=get_device())
 

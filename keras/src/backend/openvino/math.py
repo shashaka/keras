@@ -77,6 +77,14 @@ def _segment_reduction_fn(
             init_val = np.array(-np.inf, dtype=np.float32)
         else:
             init_val = DTYPES_MIN[data_type]
+    elif reduction_method == "min":
+        from keras.src.backend.openvino.core import DTYPES_MAX
+
+        data_type = data.get_element_type()
+        if data_type.is_real():
+            init_val = np.array(np.inf, dtype=np.float32)
+        else:
+            init_val = DTYPES_MAX[data_type]
     else:
         init_val = 0
 
@@ -106,6 +114,10 @@ def segment_sum(data, segment_ids, num_segments=None, sorted=False):
 
 def segment_max(data, segment_ids, num_segments=None, sorted=False):
     return _segment_reduction_fn(data, segment_ids, "max", num_segments, sorted)
+
+
+def segment_min(data, segment_ids, num_segments=None, sorted=False):
+    return _segment_reduction_fn(data, segment_ids, "min", num_segments, sorted)
 
 
 def top_k(x, k, sorted=True):
