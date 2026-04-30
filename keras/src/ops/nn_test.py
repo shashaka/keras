@@ -1579,6 +1579,10 @@ class NNOpsCorrectnessTest(testing.TestCase):
             )
             self.assertAllClose(normalized_sum_by_axis, 1.0)
 
+    @pytest.mark.skipif(
+        not backend.SUPPORTS_COMPLEX_DTYPES,
+        reason=f"{backend.backend()} backend doesn't support complex dtypes.",
+    )
     def test_polar_corectness(self):
         abs_ = np.array([1, 2], dtype="float32")
         angle = np.array([2, 3], dtype="float32")
@@ -2485,11 +2489,6 @@ class NNOpsCorrectnessTest(testing.TestCase):
             mask = mask[None, None, ...]
             mask = np.tile(mask, (2, 4, 1, 1))
         if bias is not None:
-            if backend.backend() == "openvino":
-                self.skipTest(
-                    "openvino does not support `bias` with "
-                    "`dot_product_attention`"
-                )
             if backend.backend() == "torch" and mask is not None:
                 self.skipTest(
                     "torch does not support `mask` and `bias` with "
@@ -2500,10 +2499,10 @@ class NNOpsCorrectnessTest(testing.TestCase):
             )
 
         if flash_attention:
-            if backend.backend() in ("tensorflow", "numpy", "openvino"):
+            if backend.backend() in ("tensorflow", "numpy"):
                 self.skipTest(
-                    "Flash attention is not supported in tensorflow, numpy, "
-                    "and openvino backends."
+                    "Flash attention is not supported in tensorflow and numpy "
+                    "backends."
                 )
             elif backend.backend() == "torch":
                 import torch
@@ -3074,6 +3073,10 @@ class NNOpsDtypeTest(testing.TestCase):
             expected_dtype,
         )
 
+    @pytest.mark.skipif(
+        not backend.SUPPORTS_COMPLEX_DTYPES,
+        reason=f"{backend.backend()} backend doesn't support complex dtypes.",
+    )
     @parameterized.named_parameters(named_product(dtype=FLOAT_DTYPES))
     def test_polar(self, dtype):
         import jax.nn as jnn

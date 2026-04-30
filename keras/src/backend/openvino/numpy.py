@@ -845,17 +845,28 @@ def bartlett(x):
     two_const_f64 = ov_opset.constant(2.0, Type.f64)
     if x.get_element_type() != Type.i64:
         x = ov_opset.convert(x, Type.i64)
-    half = ov_opset.convert(
-        ov_opset.divide(ov_opset.subtract(x, one_const), two_const), Type.f64
-    )
+    denom_i64 = ov_opset.subtract(x, one_const)
+    is_one = ov_opset.equal(denom_i64, zero_const)
+    one_f64 = ov_opset.constant(1.0, Type.f64)
+
+    half = ov_opset.convert(ov_opset.divide(denom_i64, two_const), Type.f64)
     n = ov_opset.range(zero_const, x, one_const, Type.f64)
     condition = ov_opset.less_equal(n, half)
+
+    safe_denom = ov_opset.select(
+        is_one, one_f64, ov_opset.convert(denom_i64, Type.f64)
+    )
+
     first_half = ov_opset.divide(
         ov_opset.multiply(two_const_f64, n),
-        ov_opset.convert(ov_opset.subtract(x, one_const), Type.f64),
+        safe_denom,
     )
     second_half = ov_opset.subtract(two_const_f64, first_half)
     window = ov_opset.select(condition, first_half, second_half)
+
+    ones = ov_opset.broadcast(one_f64, ov_opset.shape_of(window))
+    window = ov_opset.select(is_one, ones, window)
+
     window = ov_opset.convert(window, OPENVINO_DTYPES[config.floatx()]).output(
         0
     )
@@ -875,10 +886,15 @@ def hamming(x):
 
     one_i64 = ov_opset.constant(1, Type.i64)
     denom_i64 = ov_opset.subtract(m_i64, one_i64)
-    denom = ov_opset.convert(denom_i64, Type.f64)
+    is_one = ov_opset.equal(denom_i64, ov_opset.constant(0, Type.i64))
+    one_f64 = ov_opset.constant(1.0, Type.f64)
+
+    safe_denom = ov_opset.select(
+        is_one, one_f64, ov_opset.convert(denom_i64, Type.f64)
+    )
 
     two_pi = ov_opset.constant(2.0 * np.pi, Type.f64)
-    two_pi_over_m_minus_1 = ov_opset.divide(two_pi, denom)
+    two_pi_over_m_minus_1 = ov_opset.divide(two_pi, safe_denom)
 
     x = ov_opset.multiply(two_pi_over_m_minus_1, n)
     c = ov_opset.cos(x)
@@ -887,6 +903,11 @@ def hamming(x):
     a = ov_opset.constant(0.54, Type.f64)
     b = ov_opset.constant(0.46, Type.f64)
     hamming_window = ov_opset.subtract(a, ov_opset.multiply(b, c))
+
+    # Fix for x=1: return [1.] instead of [0.08]
+    ones = ov_opset.broadcast(one_f64, ov_opset.shape_of(hamming_window))
+    hamming_window = ov_opset.select(is_one, ones, hamming_window)
+
     hamming_window = ov_opset.convert(
         hamming_window, OPENVINO_DTYPES[config.floatx()]
     )
@@ -4379,29 +4400,19 @@ def take_along_axis(x, indices, axis=None):
     ).output(0)
     indices = ov_opset.convert(indices, Type.i32).output(0)
 
-    x_target_parts, indices_target_parts = [], []
-
-    for i in range(x_rank):
-        dim_idx = ov_opset.constant([i], dtype=Type.i32).output(0)
-        x_dim = ov_opset.gather(x_shape, dim_idx, zero_const).output(0)
-        indices_dim = ov_opset.gather(
-            indices_shape, dim_idx, zero_const
-        ).output(0)
-
-        if i == axis:
-            # For axis dimension: keep original dimensions
-            x_target_parts.append(x_dim)
-            indices_target_parts.append(indices_dim)
-        else:
-            # For other dimensions: use maximum for broadcasting
-            max_dim = ov_opset.maximum(x_dim, indices_dim).output(0)
-            x_target_parts.append(max_dim)
-            indices_target_parts.append(max_dim)
-
-    x_target_shape = ov_opset.concat(x_target_parts, axis=0).output(0)
-    indices_target_shape = ov_opset.concat(indices_target_parts, axis=0).output(
-        0
-    )
+    # Compute broadcast targets: non-axis dims use element-wise max of both
+    # shapes; axis dim is kept separately for x and indices.
+    max_shape = ov_opset.maximum(x_shape, indices_shape).output(0)
+    x_axis_dim = ov_opset.gather(x_shape, axis_index, zero_const).output(0)
+    indices_axis_dim = ov_opset.gather(
+        indices_shape, axis_index, zero_const
+    ).output(0)
+    x_target_shape = ov_opset.scatter_elements_update(
+        max_shape, axis_index, x_axis_dim, zero_const
+    ).output(0)
+    indices_target_shape = ov_opset.scatter_elements_update(
+        max_shape, axis_index, indices_axis_dim, zero_const
+    ).output(0)
 
     # Broadcast to target shapes and gather elements
     x_broadcasted = ov_opset.broadcast(x, x_target_shape).output(0)

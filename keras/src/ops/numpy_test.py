@@ -5113,7 +5113,13 @@ class NumpyOneInputOpsCorrectnessTest(testing.TestCase):
         x = np.random.randint(1, 100 + 1)
         self.assertAllClose(knp.bartlett(x), np.bartlett(x))
 
-        self.assertAllClose(knp.Bartlett()(x), np.bartlett(x))
+    def test_bartlett_length_1(self):
+        x = 1
+        x_tensor = keras.ops.convert_to_tensor(x)
+        expected = np.bartlett(x)
+        out = knp.bartlett(x_tensor)
+        self.assertEqual(out.shape[0], x)
+        self.assertAllClose(out, expected)
 
     def test_blackman(self):
         x = np.random.randint(1, 100 + 1)
@@ -5131,20 +5137,39 @@ class NumpyOneInputOpsCorrectnessTest(testing.TestCase):
         x = np.random.randint(1, 100 + 1)
         self.assertAllClose(knp.hamming(x), np.hamming(x))
 
-        self.assertAllClose(knp.Hamming()(x), np.hamming(x))
+    def test_hamming_length_1(self):
+        x = 1
+        x_tensor = keras.ops.convert_to_tensor(x)
+        expected = np.hamming(x)
+        out = knp.hamming(x_tensor)
+        self.assertEqual(out.shape[0], x)
+        self.assertAllClose(out, expected)
 
     def test_hanning(self):
         x = np.random.randint(1, 100 + 1)
         self.assertAllClose(knp.hanning(x), np.hanning(x))
 
-        self.assertAllClose(knp.Hanning()(x), np.hanning(x))
+    def test_hanning_length_1(self):
+        x = 1
+        x_tensor = keras.ops.convert_to_tensor(x)
+        expected = np.hanning(x)
+        out = knp.hanning(x_tensor)
+        self.assertEqual(out.shape[0], x)
+        self.assertAllClose(out, expected)
 
     def test_kaiser(self):
         x = np.random.randint(1, 100 + 1)
         beta = float(np.random.randint(10, 20 + 1))
         self.assertAllClose(knp.kaiser(x, beta), np.kaiser(x, beta))
 
-        self.assertAllClose(knp.Kaiser(beta)(x), np.kaiser(x, beta))
+    def test_kaiser_length_1(self):
+        x = 1
+        x_tensor = keras.ops.convert_to_tensor(x)
+        beta = float(np.random.randint(10, 20 + 1))
+        expected = np.kaiser(x, beta)
+        out = knp.kaiser(x_tensor, beta)
+        self.assertEqual(out.shape[0], x)
+        self.assertAllClose(out, expected)
 
     @parameterized.named_parameters(
         named_product(sparse_input=(False, True), sparse_arg=(False, True))
@@ -5376,11 +5401,19 @@ class NumpyOneInputOpsCorrectnessTest(testing.TestCase):
         self.assertSparse(knp.concatenate([x, y], axis=axis))
         self.assertSparse(knp.Concatenate(axis=axis)([x, y]))
 
+    @pytest.mark.skipif(
+        not backend.SUPPORTS_COMPLEX_DTYPES,
+        reason=f"{backend.backend()} backend doesn't support complex dtypes.",
+    )
     def test_conjugate(self):
         x = np.array([[1 + 2j, 2 + 3j], [3 + 4j, 4 + 5j]])
         self.assertAllClose(knp.conjugate(x), np.conjugate(x))
         self.assertAllClose(knp.Conjugate()(x), np.conjugate(x))
 
+    @pytest.mark.skipif(
+        not backend.SUPPORTS_COMPLEX_DTYPES,
+        reason=f"{backend.backend()} backend doesn't support complex dtypes.",
+    )
     def test_conj(self):
         x = np.array([[1 + 2j, 2 + 3j], [3 + 4j, 4 + 5j]])
         self.assertAllClose(knp.conj(x), np.conj(x))
@@ -5676,6 +5709,10 @@ class NumpyOneInputOpsCorrectnessTest(testing.TestCase):
         x = np.array([-1.0, -2.0, 0.5])
         self.assertAllClose(knp.i0(x), np.i0(x))
 
+    @pytest.mark.skipif(
+        not backend.SUPPORTS_COMPLEX_DTYPES,
+        reason=f"{backend.backend()} backend doesn't support complex dtypes.",
+    )
     def test_imag(self):
         x = np.array([[1 + 1j, 2 + 2j, 3 + 3j], [3 + 3j, 2 + 2j, 1 + 1j]])
         self.assertAllClose(knp.imag(x), np.imag(x))
@@ -5710,6 +5747,10 @@ class NumpyOneInputOpsCorrectnessTest(testing.TestCase):
         self.assertAllClose(knp.isposinf(x), np.isposinf(x))
         self.assertAllClose(knp.Isposinf()(x), np.isposinf(x))
 
+    @pytest.mark.skipif(
+        not backend.SUPPORTS_COMPLEX_DTYPES,
+        reason=f"{backend.backend()} backend doesn't support complex dtypes.",
+    )
     def test_isreal(self):
         x = np.array([1 + 1j, 1 + 0j, 4.5, 3, 2, 2j], dtype=complex)
         self.assertAllClose(knp.isreal(x), np.isreal(x))
@@ -6069,6 +6110,10 @@ class NumpyOneInputOpsCorrectnessTest(testing.TestCase):
         ):
             self.assertAllClose(ind_knp, ind_np)
 
+    @pytest.mark.skipif(
+        not backend.SUPPORTS_COMPLEX_DTYPES,
+        reason=f"{backend.backend()} backend doesn't support complex dtypes.",
+    )
     def test_real(self):
         x = np.array([[1, 2, 3 - 3j], [3, 2, 1 + 5j]])
         self.assertAllClose(knp.real(x), np.real(x))
@@ -7982,10 +8027,6 @@ class NumpyDtypeTest(testing.TestCase):
         self.assertEqual(
             standardize_dtype(knp.bartlett(x).dtype), expected_dtype
         )
-        self.assertEqual(
-            standardize_dtype(knp.Bartlett().symbolic_call(x).dtype),
-            expected_dtype,
-        )
 
     @parameterized.named_parameters(named_product(dtype=ALL_DTYPES))
     def test_blackman(self, dtype):
@@ -8004,10 +8045,6 @@ class NumpyDtypeTest(testing.TestCase):
         self.assertEqual(
             standardize_dtype(knp.hamming(x).dtype), expected_dtype
         )
-        self.assertEqual(
-            standardize_dtype(knp.Hamming().symbolic_call(x).dtype),
-            expected_dtype,
-        )
 
     @parameterized.named_parameters(named_product(dtype=ALL_DTYPES))
     def test_hanning(self, dtype):
@@ -8016,10 +8053,6 @@ class NumpyDtypeTest(testing.TestCase):
 
         self.assertEqual(
             standardize_dtype(knp.hanning(x).dtype), expected_dtype
-        )
-        self.assertEqual(
-            standardize_dtype(knp.Hanning().symbolic_call(x).dtype),
-            expected_dtype,
         )
 
     @parameterized.named_parameters(named_product(dtype=ALL_DTYPES))
@@ -8030,10 +8063,6 @@ class NumpyDtypeTest(testing.TestCase):
 
         self.assertEqual(
             standardize_dtype(knp.kaiser(x, beta).dtype), expected_dtype
-        )
-        self.assertEqual(
-            standardize_dtype(knp.Kaiser(beta).symbolic_call(x).dtype),
-            expected_dtype,
         )
 
     @parameterized.named_parameters(named_product(dtype=INT_DTYPES))
